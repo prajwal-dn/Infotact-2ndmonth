@@ -1,0 +1,5 @@
+/quantumvault/target/
+*.log
+.env
+.env.*
+!.env.example
