@@ -1,6 +1,6 @@
 # QuantumVault Test Matrix (Aman)
 
-**Status:** Planning phase. Tests will be implemented against actual code once APIs are implemented.
+**Status:** FUSE layer tested. Crypto APIs pending implementation.
 
 ## 1. ML-KEM-768 Tests (Planned)
 - [ ] Encapsulation/Decapsulation produces matching shared secrets
@@ -21,16 +21,21 @@
 - [ ] Invalid tag is rejected
 - [ ] Boundary sizes (0 bytes, 1 byte, 64KB, etc.)
 
-## 4. Filesystem Integration Tests (Planned)
-- [ ] Create, Read, Update, Delete (CRUD) files
+## 4. Filesystem Integration Tests (Completed & Planned)
+- [x] Mount & Setup
+- [x] Create, Read, Update, Delete (CRUD) files
+- [x] Append (O_APPEND)
+- [x] Truncate (O_TRUNC)
+- [x] Permissions (chmod)
+- [x] Unmount & Cleanup
 - [ ] Empty files (0 bytes)
 - [ ] Binary files
 - [ ] Offset-based reads (read from middle of file)
 - [ ] Repeated writes to same file
 - [ ] Directory listing (ls)
 - [ ] Large files (>10MB)
-- [ ] Unmount/Remount persistence (data survives)
-- [ ] Nonce/AAD persistence and crash recovery (verify counters don't reset)
+- [ ] Unmount/Remount persistence (data survives) - *Pending storage integration*
+- [ ] Nonce/AAD persistence and crash recovery - *Pending crypto integration*
 
 ## 5. Key Manager Tests (Planned)
 - [ ] Vault initialization
@@ -41,5 +46,6 @@
 - [ ] Restart/remount recovery
 
 ## Notes
-- Writes are currently disabled per API contract.
-- No crypto integration exists yet (static hello.txt only).
+- FUSE tests passed on commit 71e2e6a.
+- Writes are currently in-memory and plaintext.
+- No crypto integration exists yet.
