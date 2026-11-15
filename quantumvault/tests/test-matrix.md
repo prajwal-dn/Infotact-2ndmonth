@@ -49,3 +49,4 @@
 - FUSE tests passed on commit 71e2e6a.
 - Writes are currently in-memory and plaintext.
 - No crypto integration exists yet.
+- Crypto test plan documented in tests/crypto-test-plan.md. Awaiting FFI bindings
