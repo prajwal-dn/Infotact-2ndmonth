@@ -38,3 +38,7 @@ These tests will run once the AEAD module is integrated.
 ## Notes
 - Currently, these are just plans. No Rust FFI code exists yet to execute them.
 - Will update status to `[x]` as soon as implementations are ready and tests are actually run.
+## Day 6 Update (Prajwal's Progress)
+- Prajwal has successfully verified the C API for ML-KEM-768 (Commit: 961a9a0).
+- Keypair gen, Encapsulation, Decapsulation, and matching 32-byte secrets are verified in C.
+- **Status:** Waiting for the Rust FFI wrapper to be implemented so Aman can write and execute the independent Rust tests against these functions.
