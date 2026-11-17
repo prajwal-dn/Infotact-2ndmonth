@@ -3,7 +3,7 @@
 **Status:** FUSE layer tested. Crypto APIs pending implementation.
 
 ## 1. ML-KEM-768 Tests (Planned)
-- [ ] Encapsulation/Decapsulation produces matching shared secrets
+- [x] Encapsulation/Decapsulation produces matching shared secrets
 - [ ] Invalid ciphertext fails gracefully
 - [ ] Wrong key decapsulation fails
 

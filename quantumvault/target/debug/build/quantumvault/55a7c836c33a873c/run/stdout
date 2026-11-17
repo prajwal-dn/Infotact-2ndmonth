@@ -1,0 +1,8 @@
+cargo:rustc-link-search=native=/home/kali/Desktop/Infotact-2ndmonth/quantumvault/target/debug/build/quantumvault/55a7c836c33a873c/out
+cargo:rustc-link-search=native=/usr/local/lib
+cargo:rustc-link-lib=static=qv_oqs_shim
+cargo:rustc-link-lib=dylib=oqs
+cargo:rustc-link-arg=-Wl,-rpath,/usr/local/lib
+cargo:rerun-if-changed=src/crypto/oqs_shim.c
+cargo:rustc-link-lib=dylib=ssl
+cargo:rustc-link-lib=dylib=crypto
