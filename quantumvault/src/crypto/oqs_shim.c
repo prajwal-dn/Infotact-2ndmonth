@@ -36,3 +36,58 @@ cleanup:
     OQS_KEM_free(kem);
     return result;
 }
+
+/* ML-DSA-65 C-level self-test for the Rust FFI bridge. */
+int qv_mldsa65_self_test(void) {
+    OQS_SIG *sig = OQS_SIG_new(OQS_SIG_alg_ml_dsa_65);
+    if (sig == NULL) return 10;
+
+    uint8_t *pk = malloc(sig->length_public_key);
+    uint8_t *sk = malloc(sig->length_secret_key);
+    uint8_t *signature = malloc(sig->length_signature);
+
+    int result = 11;
+    if (!pk || !sk || !signature) goto cleanup;
+
+    static const uint8_t message[] = "QuantumVault ML-DSA-65 Rust FFI test";
+    static const uint8_t altered[] = "QuantumVault ML-DSA-65 altered test";
+    size_t signature_len = 0;
+
+    if (OQS_SIG_keypair(sig, pk, sk) != OQS_SUCCESS) {
+        result = 12;
+        goto cleanup;
+    }
+
+    if (OQS_SIG_sign(sig, signature, &signature_len,
+                     message, sizeof(message) - 1, sk) != OQS_SUCCESS) {
+        result = 13;
+        goto cleanup;
+    }
+
+    if (signature_len > sig->length_signature) {
+        result = 16;
+        goto cleanup;
+    }
+
+    if (OQS_SIG_verify(sig, message, sizeof(message) - 1,
+                       signature, signature_len, pk) != OQS_SUCCESS) {
+        result = 14;
+        goto cleanup;
+    }
+
+    if (OQS_SIG_verify(sig, altered, sizeof(altered) - 1,
+                       signature, signature_len, pk) == OQS_SUCCESS) {
+        result = 15;
+        goto cleanup;
+    }
+
+    result = 0;
+
+cleanup:
+    if (sk) OQS_MEM_cleanse(sk, sig->length_secret_key);
+    free(pk);
+    free(sk);
+    free(signature);
+    OQS_SIG_free(sig);
+    return result;
+}
