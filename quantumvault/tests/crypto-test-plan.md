@@ -42,3 +42,8 @@ These tests will run once the AEAD module is integrated.
 - Prajwal has successfully verified the C API for ML-KEM-768 (Commit: 961a9a0).
 - Keypair gen, Encapsulation, Decapsulation, and matching 32-byte secrets are verified in C.
 - **Status:** Waiting for the Rust FFI wrapper to be implemented so Aman can write and execute the independent Rust tests against these functions.
+## Day 8 Update (Prajwal's Progress)
+- Prajwal has successfully verified the C API for ML-DSA-65 (Commit: 4921b46).
+- Keygen, Sign, Verify, and Modified message rejection are verified in C.
+- **Status:** Waiting for the Rust FFI wrapper to be implemented. 
+- **Rust Test Harness:** Created `tests/mldsa_ffi_test.rs` (marked as `#[ignore]` until FFI is ready).
