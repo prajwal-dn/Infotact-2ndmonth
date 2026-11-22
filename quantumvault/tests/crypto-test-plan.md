@@ -47,3 +47,8 @@ These tests will run once the AEAD module is integrated.
 - Keygen, Sign, Verify, and Modified message rejection are verified in C.
 - **Status:** Waiting for the Rust FFI wrapper to be implemented. 
 - **Rust Test Harness:** Created `tests/mldsa_ffi_test.rs` (marked as `#[ignore]` until FFI is ready).
+## Day 9 Update (Prajwal's Progress)
+- Rust FFI for ML-DSA-65 is now implemented (Commit: 47ea0ab).
+- `mldsa65_self_test()` successfully validated from Rust.
+- Keygen, Sign, Verify, and Modified message rejection work across the FFI.
+- **Status:** KEM and DSA basic FFI bridges are complete. Waiting for final storage/key-management API.

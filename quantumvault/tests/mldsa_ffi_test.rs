@@ -1,13 +1,14 @@
-// Independent ML-DSA-65 Test Scaffolding
-// Status: PLANNED - Waiting for Prajwal's Rust FFI implementation.
-// This test will be un-ignored once the `mldsa65_self_test()` (or similar) function is available.
+// Independent test for Prajwal's Day 9 ML-DSA-65 FFI bridge
+// Verifies that the Rust-C FFI bridge works for ML-DSA-65 signatures.
 
 #[test]
-#[ignore] // Ignored until the FFI is actually implemented
 fn test_mldsa65_ffi_bridge() {
-    // TODO: Uncomment and replace with actual API call once Prajwal implements it.
-    // let result = quantumvault::crypto::mldsa65_self_test();
-    // assert!(result.is_ok(), "ML-DSA FFI self-test failed");
+    // Call the smoke-test function provided by Prajwal's FFI.
+    let result = quantumvault::crypto::mldsa65_self_test();
     
-    println!("ML-DSA-65 FFI bridge is not yet implemented. Test skipped.");
+    // The function should return Ok(()) if keygen, sign, and verify succeed,
+    // and modified message is rejected.
+    assert!(result.is_ok(), "ML-DSA FFI self-test failed: {:?}", result.err());
+    
+    println!("✅ ML-DSA-65 FFI bridge validated successfully from Rust.");
 }

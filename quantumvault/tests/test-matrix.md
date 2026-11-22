@@ -8,10 +8,10 @@
 - [ ] Wrong key decapsulation fails
 
 ## 2. ML-DSA-65 Tests (Planned)
-- [ ] Valid signature verifies successfully
-- [ ] Modified message fails verification
-- [ ] Modified signature fails verification
-- [ ] Wrong public key fails verification
+- [x] Valid signature verifies successfully
+- [x] Modified message fails verification
+- [x] Modified signature fails verification
+- [x] Wrong public key fails verification
 
 ## 3. AES-256-GCM Tests (Planned)
 - [ ] Round-trip encryption/decryption works
