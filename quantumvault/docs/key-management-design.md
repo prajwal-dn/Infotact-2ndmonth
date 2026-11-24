@@ -1,6 +1,6 @@
 # QuantumVault Key Management Design
 
-**Status:** Design proposal — not implemented
+**Status:** Design proposal with partial foundational implementation
 **Version:** 1.0
 
 ## 1. Purpose
@@ -48,6 +48,8 @@ Keys must never be reused across cryptographic purposes.
 - Password salts and required nonces must be generated using a
   cryptographically secure random number generator.
 - Key and nonce generation failures must stop the operation.
+- The current foundation uses the OS-backed `getrandom` interface
+  for random byte generation and salt creation.
 
 ## 5. Key Protection and Persistence
 
@@ -106,6 +108,11 @@ No lifecycle operation should expose secret key material unnecessarily.
 - Do not log passwords, private keys, shared secrets or plaintext DEKs.
 - Handle allocation and cryptographic failures without exposing secrets.
 
+The current implementation includes a `SecretBytes` wrapper backed by
+the Rust `zeroize` crate. Its buffer is zeroized when the wrapper is
+dropped. This is a foundational safeguard and does not guarantee that
+all copies of secret material throughout the process are erased.
+
 ## 9. Recovery and Rollback
 
 ML-KEM encapsulation ciphertext and protected private-key material
@@ -125,9 +132,9 @@ equivalent mechanism is required for that protection.
 
 1. Finalize key hierarchy and cryptographic interfaces.
 2. Define versioned key metadata structures.
-3. Implement password-based protection using Argon2id.
+3. Integrate password-based protection with persisted key metadata.
 4. Implement ML-KEM key persistence and recovery.
-5. Implement HKDF domain-separated derivation.
+5. Integrate HKDF derivation with the actual vault key hierarchy.
 6. Implement per-file DEK generation and wrapping.
 7. Implement ML-DSA identity-key protection separately.
 8. Add negative, recovery and tampering tests.
@@ -138,15 +145,45 @@ requirements are implemented and tested.
 
 ## 11. Current Status and Limitations
 
-This document describes a proposed design, not completed
-key-management functionality.
+The project has implemented foundational key-management and
+metadata-persistence primitives. These do not yet constitute a
+complete or integrated vault key-management system.
 
-The current project has ML-KEM-768 and ML-DSA-65 C/Rust
-self-test integrations. These are validation bridges, not
-production key-management APIs.
+Implemented foundations:
 
-Persistent key storage, password protection, HKDF integration,
-DEK wrapping and recovery remain future implementation tasks.
+- Argon2id password-key derivation using Argon2id version 0x13,
+  with 64 MiB memory cost, 3 iterations and parallelism 1.
+- Random 16-byte password salt generation using OS-backed randomness.
+- OS-backed random byte generation through `getrandom`.
+- `SecretBytes` wrapper with zeroization on drop.
+- HKDF-SHA-256 subkey derivation with distinct labels for
+  `VaultMaster` and `DekWrapping` purposes.
+- Atomic metadata file replacement using a temporary file,
+  file synchronization, rename and parent-directory synchronization.
+- Restrictive 0600 permissions for newly created metadata files.
+- Unit tests for derivation, randomness, zeroization-related
+  behaviour and metadata-write validation.
+
+Still not implemented:
+
+- Persisted Argon2 parameters and password-based unlock workflow.
+- Protection, serialization and persistence of ML-KEM private keys.
+- Integration of ML-KEM shared-secret recovery into the key hierarchy.
+- Production vault master-key initialization and lifecycle.
+- Per-file DEK generation, wrapping and persistent storage.
+- AES-256-GCM encryption and decryption.
+- Durable nonce allocation for encrypted file writes.
+- Persistent encrypted file records, crash recovery and rollback protection.
+- ML-DSA identity-key protection and persistence.
+
+The HKDF primitives are currently foundational APIs. Their presence
+does not mean the complete proposed key hierarchy is integrated.
+Atomic metadata writes do not provide encrypted storage or rollback
+protection. A directory synchronization error after rename may also
+mean that the destination was already replaced.
+
+The ML-KEM-768 and ML-DSA-65 C/Rust integrations remain self-tests,
+not production key-management APIs.
 
 QuantumVault is an educational internship prototype and has
 not undergone an independent security audit.

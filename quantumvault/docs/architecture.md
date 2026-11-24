@@ -100,18 +100,31 @@ Implemented:
 - ML-DSA-65 C and Rust FFI self-tests.
 - ML-KEM shared-secret equality verification.
 - ML-DSA signature verification and altered-message rejection.
-- Initial architecture, API contract and encrypted file-format documentation.
-- Key-management design proposal.
+- Argon2id password-key derivation foundation.
+- OS-backed random byte and password-salt generation.
+- SecretBytes wrapper with zeroization on drop.
+- HKDF-SHA-256 purpose-separated subkey derivation.
+- Atomic metadata file replacement with file and directory synchronization.
+- Restrictive 0600 permissions for newly created metadata files.
+- Unit tests for key-management foundations and metadata persistence.
+- Architecture, API contract, encrypted file-format and key-management documentation.
 
 Not yet implemented:
-- Production key-management APIs.
-- Argon2id password-based key protection.
-- HKDF-SHA-256 key derivation.
-- Persistent ML-KEM and ML-DSA private-key storage.
-- Per-file DEK generation and wrapping.
+- Complete production key-management APIs and vault lifecycle.
+- Persisted Argon2 parameters and password-based unlock workflow.
+- ML-KEM private-key protection, persistence and recovery.
+- Integration of ML-KEM shared-secret recovery into the vault key hierarchy.
+- Production vault master-key initialization and integration.
+- Per-file DEK generation, wrapping and persistence.
 - AES-256-GCM file encryption and decryption.
-- Persistent encrypted storage and crash recovery.
-- Durable nonce allocation and rollback detection.
+- Persistent encrypted file records and crash recovery.
+- Durable nonce allocation and rollback protection.
+- ML-DSA identity-key protection and persistence.
+
+The current Argon2id and HKDF functions are foundational primitives;
+they do not yet implement the complete vault key hierarchy.
+The atomic metadata helper does not provide encrypted storage or
+rollback protection.
 
 The current FUSE filesystem MVP is in-memory and does not
 provide persistent encrypted file storage.
