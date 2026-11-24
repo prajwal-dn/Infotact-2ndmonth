@@ -91,19 +91,33 @@ ML-KEM and ML-DSA keypairs must remain separate.
 ## 9. Current Implementation Status
 
 Implemented:
-- Rust Cargo project.
-- Basic read-only FUSE filesystem.
-- Static hello.txt file.
-- Initial architecture and format documentation.
+- Rust Cargo project and modular architecture.
+- Writable in-memory FUSE filesystem MVP.
+- File creation, reading, writing, appending, truncating and deletion.
+- Directory listing and basic file operations.
+- liboqs 0.16.0 integration using a C/Rust FFI boundary.
+- ML-KEM-768 C and Rust FFI self-tests.
+- ML-DSA-65 C and Rust FFI self-tests.
+- ML-KEM shared-secret equality verification.
+- ML-DSA signature verification and altered-message rejection.
+- Initial architecture, API contract and encrypted file-format documentation.
+- Key-management design proposal.
 
 Not yet implemented:
-- Writable FUSE operations.
-- liboqs integration.
-- ML-KEM-768 and ML-DSA-65 operations.
-- Argon2id and HKDF integration.
-- AES-256-GCM encryption.
-- Persistent key management.
-- Encrypted storage and crash recovery.
+- Production key-management APIs.
+- Argon2id password-based key protection.
+- HKDF-SHA-256 key derivation.
+- Persistent ML-KEM and ML-DSA private-key storage.
+- Per-file DEK generation and wrapping.
+- AES-256-GCM file encryption and decryption.
+- Persistent encrypted storage and crash recovery.
+- Durable nonce allocation and rollback detection.
+
+The current FUSE filesystem MVP is in-memory and does not
+provide persistent encrypted file storage.
+
+The cryptographic FFI functions are self-tests, not production
+key-management or file-encryption APIs.
 
 ## 10. Project Scope
 
