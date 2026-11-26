@@ -102,24 +102,27 @@ Implemented:
 - ML-DSA signature verification and altered-message rejection.
 - Argon2id password-key derivation foundation.
 - OS-backed random byte and password-salt generation.
-- SecretBytes wrapper with zeroization on drop.
+- SecretBytes wrapper with zeroization on drop and redacted debug formatting.
 - HKDF-SHA-256 purpose-separated subkey derivation.
+- AES-256-GCM authenticated private-key protection (`protect_private_key`, `unprotect_private_key`).
+- Binary serialization and deserialization for protected private-key records (`.qvpk`).
+- Persistent key storage and recovery with atomic replacement (`save_protected_key_record`, `recover_private_key`, etc.).
+- Purpose separation between ML-KEM and ML-DSA private key protection.
 - Atomic metadata file replacement with file and directory synchronization.
-- Restrictive 0600 permissions for newly created metadata files.
-- Unit tests for key-management foundations and metadata persistence.
+- Restrictive 0600 permissions for newly created metadata and key records.
+- Comprehensive 71-test suite covering crypto, key management, recovery, tampering, and filesystem.
 - Architecture, API contract, encrypted file-format and key-management documentation.
 
 Not yet implemented:
-- Complete production key-management APIs and vault lifecycle.
-- Persisted Argon2 parameters and password-based unlock workflow.
-- ML-KEM private-key protection, persistence and recovery.
+- Complete production key-management APIs and vault lifecycle (vault unlock/lock).
+- Persisted Argon2 parameters for global vault unlock workflow.
 - Integration of ML-KEM shared-secret recovery into the vault key hierarchy.
 - Production vault master-key initialization and integration.
 - Per-file DEK generation, wrapping and persistence.
-- AES-256-GCM file encryption and decryption.
+- AES-256-GCM file chunk encryption and decryption.
 - Persistent encrypted file records and crash recovery.
-- Durable nonce allocation and rollback protection.
-- ML-DSA identity-key protection and persistence.
+- Durable nonce counter allocation and rollback protection for filesystem chunks.
+- Encrypted FUSE writes (remain disabled).
 
 The current Argon2id and HKDF functions are foundational primitives;
 they do not yet implement the complete vault key hierarchy.

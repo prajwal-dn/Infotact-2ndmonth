@@ -224,3 +224,46 @@ and recovery for DEK wrapping before the format is finalized.
 
 A wrapped DEK must be authenticated successfully before
 it can be used for file encryption or decryption.
+
+## 14. Protected Private-Key Record Format (`.qvpk`) [Implemented]
+
+The protected private-key record stores post-quantum private keys (ML-KEM-768 or ML-DSA-65) encrypted under password-derived keys using AES-256-GCM.
+
+### 14.1 Binary Layout
+
+The record starts with a 55-byte fixed header followed by the variable-length ciphertext:
+
+| Offset | Field | Type / Size | Description |
+|---|---|---|---|
+| `0..4` | Magic | 4 bytes (`ASCII`) | Fixed magic bytes: `QVPK` (`0x51 0x56 0x50 0x4B`) |
+| `4..6` | Format Version | `u16` (big-endian) | Format version (currently `1`) |
+| `6..22` | Vault ID | 16 bytes | Unique 128-bit vault identifier |
+| `22..23` | Key Type | `u8` | `1` = `MlKemPrivateKey`, `2` = `MlDsaPrivateKey` |
+| `23..39` | Argon2 Salt | 16 bytes | Fresh random salt for Argon2id key derivation |
+| `39..51` | AES-GCM Nonce | 12 bytes | Fresh random 96-bit nonce |
+| `51..55` | Ciphertext Length | `u32` (big-endian) | Byte length of following ciphertext (minimum 16) |
+| `55..` | Ciphertext + Tag | Variable (`N` bytes) | AES-256-GCM ciphertext ending with 16-byte tag |
+
+### 14.2 Associated Authenticated Data (AAD)
+
+The AAD authenticated by AES-256-GCM is constructed as:
+
+```text
+AAD = "QuantumVault/protected-key/" || version (2 bytes BE) || vault_id (16 bytes) || key_type_label
+```
+
+Where `key_type_label` is:
+- `b"ml-kem-768-private-key"` for ML-KEM-768
+- `b"ml-dsa-65-private-key"` for ML-DSA-65
+
+### 14.3 Integrity & Validation Rules
+
+Parsers must strictly enforce:
+1. Magic bytes must equal `QVPK`.
+2. Format version must equal `1`.
+3. Key type must be recognized (`1` or `2`).
+4. Total byte size must not exceed `1,048,576` bytes (1 MiB).
+5. Ciphertext length must be at least 16 bytes (to hold the GCM auth tag).
+6. Exact length match: `total_length == 55 + ciphertext_length`.
+7. Ciphertext or header truncation must immediately return an error without attempting decryption.
+8. Decryption failure (authentication tag mismatch) must fail closed and return an authentication error.

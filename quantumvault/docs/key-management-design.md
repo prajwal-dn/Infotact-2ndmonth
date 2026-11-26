@@ -145,45 +145,64 @@ requirements are implemented and tested.
 
 ## 11. Current Status and Limitations
 
-The project has implemented foundational key-management and
-metadata-persistence primitives. These do not yet constitute a
-complete or integrated vault key-management system.
+### 11.1 Implemented Key-Management Features (Day 11 & Day 12)
 
-Implemented foundations:
+- **Password Key Derivation:** Argon2id version 0x13 with 64 MiB memory cost, 3 iterations, and parallelism 1.
+- **OS-Backed Randomness:** Secure random byte and salt generation via `getrandom`.
+- **Secret Memory Safety:** `SecretBytes` wrapper with `zeroize` on drop and redacted `Debug` implementation.
+- **Purpose-Separated Subkey Derivation:** HKDF-SHA-256 derivation with distinct domain labels for:
+  - `KeyPurpose::VaultMaster`
+  - `KeyPurpose::DekWrapping`
+  - `KeyPurpose::KemPrivateKeyProtection`
+  - `KeyPurpose::DsaPrivateKeyProtection`
+- **Protected Key Record Format (`.qvpk`):**
+  - Binary serialization and deserialization via `ProtectedKeyRecord::to_bytes()` and `ProtectedKeyRecord::from_bytes()`.
+  - Strict 55-byte header including magic bytes `b"QVPK"`, format version 1 (`u16`), 16-byte vault ID, 1-byte key kind (`1 = ML-KEM`, `2 = ML-DSA`), 16-byte Argon2 salt, 12-byte AES-GCM nonce, and 4-byte big-endian ciphertext length.
+  - Authenticated Associated Data (AAD) binding format version, vault ID, and key kind label (`b"QuantumVault/protected-key/" || version || vault_id || aad_label`).
+- **Authenticated Encryption:** AES-256-GCM encryption with 96-bit random nonces and 128-bit authentication tags.
+- **Persistent Key Storage & Recovery:**
+  - Atomic persistence using `storage::atomic_write()` with restrictive `0600` permissions on Unix platforms.
+  - Safe APIs: `save_protected_key_record`, `save_mlkem_private_key`, `save_mldsa_private_key`, `load_protected_key_record`, `recover_private_key`, `load_and_recover_mlkem_private_key`, and `load_and_recover_mldsa_private_key`.
+  - Key-type and vault ID validation on save, load, and unprotect operations.
+  - Strict input validation rejecting truncated headers, truncated ciphertext, inconsistent ciphertext lengths, invalid magic bytes, unsupported versions, and oversized records (> 1 MiB).
+- **Comprehensive Test Suite:** 35 unit tests in `key_manager` including round-trip serialization, disk persistence, correct and incorrect password recovery, ciphertext tampering, vault ID mismatch, magic corruption, key type corruption, version validation, truncation, oversized payload rejection, and atomic replacement verification.
 
-- Argon2id password-key derivation using Argon2id version 0x13,
-  with 64 MiB memory cost, 3 iterations and parallelism 1.
-- Random 16-byte password salt generation using OS-backed randomness.
-- OS-backed random byte generation through `getrandom`.
-- `SecretBytes` wrapper with zeroization on drop.
-- HKDF-SHA-256 subkey derivation with distinct labels for
-  `VaultMaster` and `DekWrapping` purposes.
-- Atomic metadata file replacement using a temporary file,
-  file synchronization, rename and parent-directory synchronization.
-- Restrictive 0600 permissions for newly created metadata files.
-- Unit tests for derivation, randomness, zeroization-related
-  behaviour and metadata-write validation.
+### 11.2 Encryption and Recovery Flow
 
-Still not implemented:
+1. **Protection Flow:**
+   - Plaintext private key material and password are provided.
+   - A fresh 16-byte random salt is generated via OS RNG.
+   - Argon2id derives a 32-byte password key.
+   - HKDF-SHA-256 derives a dedicated 32-byte AES-256-GCM key bound to the specific key purpose (`KemPrivateKeyProtection` vs `DsaPrivateKeyProtection`).
+   - A fresh 96-bit random nonce is generated via OS RNG.
+   - AES-256-GCM encrypts the private key with AAD binding the vault ID, version, and key type.
+   - The serialized record is written to disk via atomic temporary file replacement with restrictive permissions (`0600`).
+   - Plaintext temporary keys and buffers are zeroized upon leaving scope.
 
-- Persisted Argon2 parameters and password-based unlock workflow.
-- Protection, serialization and persistence of ML-KEM private keys.
-- Integration of ML-KEM shared-secret recovery into the key hierarchy.
-- Production vault master-key initialization and lifecycle.
-- Per-file DEK generation, wrapping and persistent storage.
-- AES-256-GCM encryption and decryption.
-- Durable nonce allocation for encrypted file writes.
-- Persistent encrypted file records, crash recovery and rollback protection.
-- ML-DSA identity-key protection and persistence.
+2. **Recovery Flow:**
+   - The `.qvpk` file is read from the designated directory.
+   - Binary header, magic, version, key type, and ciphertext lengths are strictly validated.
+   - Expected vault ID is verified against the record.
+   - Argon2id re-derives the password key from the supplied password and persisted salt.
+   - HKDF-SHA-256 re-derives the purpose-separated AES key.
+   - AES-256-GCM authenticates and decrypts the ciphertext using the reconstructed AAD and nonce.
+   - The recovered plaintext is returned inside a `SecretBytes` wrapper that zeroizes upon drop.
 
-The HKDF primitives are currently foundational APIs. Their presence
-does not mean the complete proposed key hierarchy is integrated.
-Atomic metadata writes do not provide encrypted storage or rollback
-protection. A directory synchronization error after rename may also
-mean that the destination was already replaced.
+### 11.3 Cryptographic Nonce Policy & Probabilistic Uniqueness
 
-The ML-KEM-768 and ML-DSA-65 C/Rust integrations remain self-tests,
-not production key-management APIs.
+Protected key records generate a 96-bit (12-byte) cryptographically secure random nonce for each encryption operation.
 
-QuantumVault is an educational internship prototype and has
-not undergone an independent security audit.
+**Assumptions and Limitations:**
+- A 96-bit random nonce provides probabilistic collision resistance, not an absolute deterministic uniqueness guarantee.
+- Under the birthday bound, the collision probability remains negligible for infrequent key-protection operations (e.g., initial vault setup, password change, key rotation). For $N \ll 2^{48}$ protected key encryptions under the same key, collision risk is infinitesimally small.
+- Because each call also generates a fresh 16-byte Argon2 salt, the derived AES-256 key is itself unique per encryption even if the password remains identical.
+- This random nonce policy is acceptable for infrequent private key protection, but **must not** be used for continuous high-throughput file-chunk encryption, which requires a persistent monotonically increasing counter.
+
+### 11.4 Remaining Limitations (Not Yet Implemented)
+
+- Persistent vault master-key hierarchy integration and lifecycle (unlock/lock of entire vault).
+- Per-file DEK generation, wrapping, and persistence.
+- AES-256-GCM chunk-level file encryption and persistent filesystem storage.
+- Durable nonce counter allocation for filesystem data chunks.
+- Rollback protection against external backing-store restoration (requires a trusted external anchor).
+- Writable FUSE filesystem encryption (remains disabled until nonce reservation and crash recovery are fully completed).
