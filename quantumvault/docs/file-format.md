@@ -267,3 +267,26 @@ Parsers must strictly enforce:
 6. Exact length match: `total_length == 55 + ciphertext_length`.
 7. Ciphertext or header truncation must immediately return an error without attempting decryption.
 8. Decryption failure (authentication tag mismatch) must fail closed and return an authentication error.
+
+## 15. Persistent Nonce State Record Format (`.qvnc`) [Implemented]
+
+The persistent nonce allocator (`src/nonce/mod.rs`) stores monotonic 64-bit counter state and a 32-bit nonce prefix per key identity and domain in an 83-byte fixed-size binary record.
+
+### 15.1 Binary Layout
+
+| Offset | Field | Type / Size | Description |
+|---|---|---|---|
+| `0..4` | Magic | 4 bytes (`ASCII`) | Fixed magic bytes: `QVNC` (`0x51 0x56 0x4E 0x43`) |
+| `4..6` | Format Version | `u16` (big-endian) | Format version (currently `1`) |
+| `6..7` | Nonce Domain | `u8` | `1` = `DekWrapping`, `2` = `FileChunk` |
+| `7..23` | Vault ID | 16 bytes | Unique 128-bit vault identifier |
+| `23..39` | Key ID | 16 bytes | Key or file identifier bound to this counter |
+| `39..43` | Nonce Prefix | 4 bytes | OS-generated random 32-bit prefix |
+| `43..51` | Next Counter | `u64` (big-endian) | Next unallocated counter value (`0..=u64::MAX`) |
+| `51..83` | Integrity Checksum | 32 bytes | SHA-256 digest over bytes `0..51` |
+
+### 15.2 Allocation, Validation & Limitations
+
+- **96-bit Nonce:** `nonce = nonce_prefix (4 bytes) || counter (8 bytes BE)`.
+- **Validation:** Parsers enforce exact 83-byte length, `QVNC` magic, version `1`, valid domain (`1` or `2`), SHA-256 checksum match, and expected `vault_id`, `key_id`, and `domain`. Any mismatch fails closed.
+- **Checksums vs. Tampering:** The SHA-256 digest detects accidental bit-flips and truncation; it is unkeyed and does not defend against an attacker with write access to the backing store or full-store snapshot rollback.

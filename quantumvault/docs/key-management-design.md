@@ -198,11 +198,25 @@ Protected key records generate a 96-bit (12-byte) cryptographically secure rando
 - Because each call also generates a fresh 16-byte Argon2 salt, the derived AES-256 key is itself unique per encryption even if the password remains identical.
 - This random nonce policy is acceptable for infrequent private key protection, but **must not** be used for continuous high-throughput file-chunk encryption, which requires a persistent monotonically increasing counter.
 
-### 11.4 Remaining Limitations (Not Yet Implemented)
+### 11.4 Persistent AES-GCM Nonce Management (Day 13)
+
+- **Module:** `src/nonce/mod.rs` (`NonceAllocator`, `NonceState`, `NonceDomain`, `AllocatedNonce`, `AllocatedNonceRange`).
+- **96-bit Nonce Construction:** `nonce_prefix (4 bytes, OS-random on init) || counter (8 bytes big-endian)`, matching the encrypted file format specification.
+- **Domain Separation:** `NonceDomain::DekWrapping` and `NonceDomain::FileChunk` enforce independent counter namespaces and state files (`.qvnc`), preventing cross-purpose nonce collisions.
+- **Write-Ahead Durable Reservation:** `allocate_nonce()` and `allocate_range(count)` serialize the incremented `next_counter` and persist it atomically via `storage::atomic_write()` (with file and directory `sync_all()`) *before* returning any nonce to the caller.
+- **Concurrency Safety (Multi-Thread & Cross-Process on Unix):** Allocations are serialized behind an internal `std::sync::Mutex` and, on Unix, an OS-level exclusive advisory file lock (`flock(LOCK_EX)` on `<filename>.lock` with `0600` permissions). Under the lock, the allocator re-reads and validates the latest `.qvnc` state from disk before incrementing `next_counter`, preventing stale cached counters across independent instances or separate processes. On non-Unix targets, no OS-level file lock is implemented and multiprocess/multi-instance safety is not guaranteed.
+- **Fail-Closed & Crash Semantics:**
+  - `NonceAllocator::init_new()` acquires the exclusive file lock and refuses to overwrite an existing `.qvnc` file (`AlreadyExists`).
+  - `NonceAllocator::open()` fails closed on missing, truncated, corrupted, version-mismatched, domain-mismatched, vault-ID-mismatched, or key-ID-mismatched metadata—never silently resetting a counter to zero.
+  - Runtime rollback detection: if the on-disk `next_counter` regresses below the last counter observed by a live allocator, the allocator fails closed (`RollbackDetected`). This does not detect full-store snapshot rollback across restarts.
+  - If `atomic_write` fails, the live allocator marks itself tainted (`UntrustedState`) so in-memory state cannot diverge from disk.
+  - A crash after durable persistence wastes the in-flight reserved counter(s) on restart rather than risking nonce reuse.
+- **Rollback Limitation:** Local durable counter persistence does **not** protect against full backing-store rollback (e.g., restoring an older filesystem snapshot). Rollback protection requires a trusted external anchor.
+
+### 11.5 Remaining Limitations (Not Yet Implemented)
 
 - Persistent vault master-key hierarchy integration and lifecycle (unlock/lock of entire vault).
-- Per-file DEK generation, wrapping, and persistence.
-- AES-256-GCM chunk-level file encryption and persistent filesystem storage.
-- Durable nonce counter allocation for filesystem data chunks.
+- Per-file DEK generation, wrapping, and persistence (using `NonceDomain::DekWrapping`).
+- AES-256-GCM chunk-level file encryption and persistent filesystem storage (using `NonceDomain::FileChunk`).
 - Rollback protection against external backing-store restoration (requires a trusted external anchor).
-- Writable FUSE filesystem encryption (remains disabled until nonce reservation and crash recovery are fully completed).
+- Writable FUSE filesystem encryption (remains disabled until DEK wrapping, chunk encryption, and remount recovery are integrated and tested).

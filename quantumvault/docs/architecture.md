@@ -108,9 +108,10 @@ Implemented:
 - Binary serialization and deserialization for protected private-key records (`.qvpk`).
 - Persistent key storage and recovery with atomic replacement (`save_protected_key_record`, `recover_private_key`, etc.).
 - Purpose separation between ML-KEM and ML-DSA private key protection.
+- Persistent, concurrency-safe AES-256-GCM nonce allocation (`src/nonce/mod.rs`, `.qvnc` format) with domain separation (`DekWrapping`, `FileChunk`), SHA-256 metadata integrity checks, and crash-safe write-ahead atomic persistence.
 - Atomic metadata file replacement with file and directory synchronization.
 - Restrictive 0600 permissions for newly created metadata and key records.
-- Comprehensive 71-test suite covering crypto, key management, recovery, tampering, and filesystem.
+- Comprehensive unit test suite covering crypto, key management, recovery, persistent nonce allocation, concurrency, crash injection, tampering, and filesystem.
 - Architecture, API contract, encrypted file-format and key-management documentation.
 
 Not yet implemented:
@@ -120,8 +121,8 @@ Not yet implemented:
 - Production vault master-key initialization and integration.
 - Per-file DEK generation, wrapping and persistence.
 - AES-256-GCM file chunk encryption and decryption.
-- Persistent encrypted file records and crash recovery.
-- Durable nonce counter allocation and rollback protection for filesystem chunks.
+- Persistent encrypted file records and end-to-end filesystem crash recovery.
+- External rollback protection anchor for backing-store snapshots.
 - Encrypted FUSE writes (remain disabled).
 
 The current Argon2id and HKDF functions are foundational primitives;
